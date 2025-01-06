@@ -23,7 +23,9 @@ def home():
 def handle_request(handle, style_url, value):
     global visit_counts
 
-    count = visit_counts.get(handle, 0)
+    visit_counts[handle] += 1
+
+    count = visit_counts[handle]
 
     if value is not None:
         count += value
