@@ -1,9 +1,9 @@
-from flask import Flask, request, jsonify, send_file
-import os
+from flask import Flask, redirect, request, jsonify, send_file
 import requests
 import zipfile
 import io
 from collections import defaultdict
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -11,22 +11,25 @@ visit_counts = defaultdict(int)
 
 style_cache = {}
 
+@app.route('/')
+def home():
+    return redirect("https://prigoana.com/count")
+
 @app.route('/<handle>', defaults={'style_url': None, 'value': None})
 @app.route('/<handle>/style/<path:style_url>', defaults={'value': None})
 @app.route('/<handle>/value=<int:value>', defaults={'style_url': None})
 @app.route('/<handle>/style/<path:style_url>/value=<int:value>')
+@api_blueprint.route('/<handle>/style/<path:style_url>/value=<int:value>/')
 def handle_request(handle, style_url, value):
     global visit_counts
 
-    if value is not None:
-        visit_counts[handle] = value
-
     count = visit_counts.get(handle, 0)
-    if value is None:
-        visit_counts[handle] += 1
+
+    if value is not None:
+        count += value
 
     if style_url is None:
-        return str(visit_counts[handle])
+        return str(count)
 
     if style_url not in style_cache:
         try:
@@ -52,7 +55,6 @@ def combine_images(images):
     """
     Combines multiple images horizontally.
     """
-    from PIL import Image
     pil_images = [Image.open(image) for image in images]
     total_width = sum(image.width for image in pil_images)
     max_height = max(image.height for image in pil_images)
