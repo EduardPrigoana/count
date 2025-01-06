@@ -19,7 +19,7 @@ def home():
 @app.route('/<handle>/style/<path:style_url>', defaults={'value': None})
 @app.route('/<handle>/value=<int:value>', defaults={'style_url': None})
 @app.route('/<handle>/style/<path:style_url>/value=<int:value>')
-@api_blueprint.route('/<handle>/style/<path:style_url>/value=<int:value>/')
+@app.route('/<handle>/style/<path:style_url>/value=<int:value>/')
 def handle_request(handle, style_url, value):
     global visit_counts
 
