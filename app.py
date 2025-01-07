@@ -108,4 +108,4 @@ def internal_error(error):
 
 # Main entry point to run the app
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=5000, debug=True)
