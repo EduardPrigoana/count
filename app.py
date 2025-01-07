@@ -15,15 +15,14 @@ style_cache = {}
 def home():
     return redirect("https://prigoana.com/count")
 
-# Handle all combinations of style, value, and gap as path and query params
-@app.route('/<handle>', defaults={'style_url': None, 'value': None, 'gap': 0})
-@app.route('/<handle>/style/<path:style_url>', defaults={'value': None, 'gap': 0})
-@app.route('/<handle>/gap=<int:gap>', defaults={'style_url': None, 'value': None})
-@app.route('/<handle>/value=<int:value>', defaults={'style_url': None, 'gap': 0})
-@app.route('/<handle>/style/<path:style_url>/gap=<int:gap>', defaults={'value': None})
-@app.route('/<handle>/style/<path:style_url>/value=<int:value>', defaults={'gap': 0})
-@app.route('/<handle>/value=<int:value>/gap=<int:gap>', defaults={'style_url': None})
-@app.route('/<handle>/value=<int:value>/gap=<int:gap>/style=<path:style_url>', defaults={})
+# Handle all combinations of style, value, and gap using hashtags
+@app.route('/<handle>#style=<path:style_url>#gap=<int:gap>#value=<int:value>', defaults={'style_url': None, 'value': None, 'gap': 0})
+@app.route('/<handle>#style=<path:style_url>#gap=<int:gap>', defaults={'value': None})
+@app.route('/<handle>#style=<path:style_url>#value=<int:value>', defaults={'gap': 0})
+@app.route('/<handle>#gap=<int:gap>#value=<int:value>', defaults={'style_url': None})
+@app.route('/<handle>#style=<path:style_url>', defaults={'value': None, 'gap': 0})
+@app.route('/<handle>#gap=<int:gap>', defaults={'style_url': None, 'value': None})
+@app.route('/<handle>#value=<int:value>', defaults={'style_url': None, 'gap': 0})
 def handle_request(handle, style_url, value, gap):
     global visit_counts
 
