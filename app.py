@@ -1,7 +1,6 @@
 import logging
 from flask import Flask, request, jsonify
 from PIL import Image
-import io
 import os
 
 # Initialize the Flask app
@@ -57,6 +56,8 @@ def process_image():
             logging.error(f"Image processing error: {str(e)}")
             return jsonify({"error": "Invalid image data"}), 400
         
+        # Process the image as required (example: save or apply filters)
+        # For now, we are just sending a success message
         return jsonify({"message": "Image processed successfully"}), 200
     
     except Exception as e:
@@ -93,12 +94,13 @@ def internal_error(error):
     logging.error(f"500 Error: {str(error)}")
     return jsonify({"error": "Internal server error"}), 500
 
-# Redirect the root URL to count.prigoana.com
+# Root URL redirect to 'count.prigoana.com'
 @app.route('/')
 def redirect_root():
     return jsonify({"message": "Redirecting to count.prigoana.com"}), 302, {'Location': 'https://count.prigoana.com'}
 
 # Main entry point to run the app
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))  # Use Render's PORT environment variable
+    # Use the port provided by Render
+    port = int(os.environ.get("PORT", 5000))  # Default to 5000 if not set by environment
     app.run(host='0.0.0.0', port=port, debug=True)
