@@ -1,19 +1,14 @@
 import logging
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify
 from PIL import Image
 import io
+import os
 
 # Initialize the Flask app
 app = Flask(__name__)
 
 # Set up basic logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Route to handle redirection for the root
-@app.route('/')
-def root():
-    # Redirect to count.prigoana.com
-    return redirect("http://prigoana.com/count", code=302)
 
 # Route to handle image processing or other logic
 @app.route('/process', methods=['GET', 'POST'])
@@ -34,7 +29,6 @@ def handle_request():
             return jsonify({"error": "Missing 'handle' or 'style_url' parameter"}), 400
         
         # Your business logic or image processing can go here
-        # For example:
         return jsonify({
             "message": "Request processed successfully",
             "handle": handle,
@@ -63,9 +57,6 @@ def process_image():
             logging.error(f"Image processing error: {str(e)}")
             return jsonify({"error": "Invalid image data"}), 400
         
-        # Process the image as required
-        # For example, you can save the image, apply filters, etc.
-        
         return jsonify({"message": "Image processed successfully"}), 200
     
     except Exception as e:
@@ -76,19 +67,15 @@ def process_image():
 @app.route('/process-zip-or-text', methods=['POST'])
 def process_zip_or_text():
     try:
-        # Get the zip file (if provided)
         zip_file = request.files.get('zip_file')
-        if zip_file is not None:
-            # If zip file is provided, process it
-            # Implement your logic to handle the zip file here
+        if zip_file:
+            # Implement your zip file handling logic here
             return jsonify({"message": "Zip file processed successfully"}), 200
         else:
-            # If no zip file, use the text input as fallback
             text_input = request.form.get('text_input')
             if not text_input:
                 return jsonify({"error": "No text input provided"}), 400
             
-            # Process the text input here
             return jsonify({"message": "Text input processed successfully", "text_input": text_input}), 200
     
     except Exception as e:
@@ -106,6 +93,12 @@ def internal_error(error):
     logging.error(f"500 Error: {str(error)}")
     return jsonify({"error": "Internal server error"}), 500
 
+# Redirect the root URL to count.prigoana.com
+@app.route('/')
+def redirect_root():
+    return jsonify({"message": "Redirecting to count.prigoana.com"}), 302, {'Location': 'https://count.prigoana.com'}
+
 # Main entry point to run the app
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Use Render's PORT environment variable
+    app.run(host='0.0.0.0', port=port, debug=True)
