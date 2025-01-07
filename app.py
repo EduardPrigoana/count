@@ -1,77 +1,59 @@
-from flask import Flask, redirect, request, jsonify, send_file
-import requests
-import zipfile
-import io
-from collections import defaultdict
-from PIL import Image
+from flask import Flask, request, jsonify
+from urllib.parse import unquote
 
 app = Flask(__name__)
 
-visit_counts = defaultdict(int)
-
-style_cache = {}
+# Dictionary to track counters
+counters = {}
 
 @app.route('/')
-def home():
-    return redirect("https://prigoana.com/count")
+def root():
+    return "Visit: https://prigoana.com/count", 200
 
-@app.route('/<handle>', defaults={'style_url': None, 'value': None})
-@app.route('/<handle>/style/<path:style_url>', defaults={'value': None})
-@app.route('/<handle>/value=<int:value>', defaults={'style_url': None})
-@app.route('/<handle>/style/<path:style_url>/value=<int:value>')
-@app.route('/<handle>/style/<path:style_url>/value=<int:value>/')
-def handle_request(handle, style_url, value):
-    global visit_counts
+# Helper function to extract value and style URL
+def parse_value_and_style(args):
+    value = args.get('value', type=int, default=0)
+    style_url = args.get('style', type=str, default=None)
+    if style_url:
+        style_url = unquote(style_url)  # Decode the encoded URL
+    return value, style_url
 
-    visit_counts[handle] += 1
+@app.route('/<handle>/', defaults={'trailing': ''})
+@app.route('/<handle>', defaults={'trailing': ''})
+@app.route('/<handle>/value=<int:value>/', defaults={'trailing': ''})
+@app.route('/<handle>/value=<int:value>', defaults={'trailing': ''})
+@app.route('/<handle>/style/<path:style_url>/', defaults={'trailing': ''})
+@app.route('/<handle>/style/<path:style_url>', defaults={'trailing': ''})
+@app.route('/<handle>/value=<int:value>/style/<path:style_url>/', defaults={'trailing': ''})
+@app.route('/<handle>/style/<path:style_url>/value=<int:value>/', defaults={'trailing': ''})
+def handle_requests(handle, value=0, style_url=None, trailing=''):
+    # Update counter for the handle
+    if handle not in counters:
+        counters[handle] = 0
 
-    count = visit_counts[handle]
+    # Parse query parameters for flexibility
+    query_value, query_style_url = parse_value_and_style(request.args)
+    value += query_value
+    style_url = style_url or query_style_url
 
-    if value is not None:
-        count += value
+    # Update counter
+    counters[handle] += value
 
-    if style_url is None:
-        return str(count)
+    # If style URL is provided, simulate its usage
+    if style_url:
+        if not style_url.endswith('.zip'):
+            return "Error: Only .zip files are supported for styles.", 400
+        return jsonify({
+            "handle": handle,
+            "count": counters[handle],
+            "style_url": style_url
+        })
 
-    if style_url not in style_cache:
-        try:
-            response = requests.get(style_url)
-            if response.status_code == 200:
-                zip_data = zipfile.ZipFile(io.BytesIO(response.content))
-                style_cache[style_url] = {f"{i}": zip_data.read(f"{i}.png") for i in range(10)}
-            else:
-                return jsonify({"error": "Failed to fetch the style ZIP"}), 400
-        except Exception as e:
-            return jsonify({"error": f"Failed to process the style ZIP: {str(e)}"}), 400
+    # Default response: Just return the count
+    return jsonify({
+        "handle": handle,
+        "count": counters[handle]
+    })
 
-    try:
-        digits = str(count)
-        images = [io.BytesIO(style_cache[style_url][digit]) for digit in digits]
-        combined_image = combine_images(images)
-        return send_file(combined_image, mimetype='image/png')
-    except Exception as e:
-        return jsonify({"error": f"Failed to generate styled output: {str(e)}"}), 500
-
-
-def combine_images(images):
-    """
-    Combines multiple images horizontally.
-    """
-    pil_images = [Image.open(image) for image in images]
-    total_width = sum(image.width for image in pil_images)
-    max_height = max(image.height for image in pil_images)
-    combined = Image.new('RGBA', (total_width, max_height))
-
-    x_offset = 0
-    for img in pil_images:
-        combined.paste(img, (x_offset, 0))
-        x_offset += img.width
-
-    output = io.BytesIO()
-    combined.save(output, format='PNG')
-    output.seek(0)
-    return output
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
