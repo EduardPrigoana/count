@@ -1,7 +1,10 @@
 from flask import Flask, redirect, request
 from collections import defaultdict
+from flask_cors import CORS  # Import CORS
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
+
 app.url_map.strict_slashes = False
 
 visit_counts = defaultdict(int)
