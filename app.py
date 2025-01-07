@@ -10,11 +10,14 @@ visit_counts = defaultdict(int)
 def home():
     return redirect("https://prigoana.com/count")
 
-@app.route('/<handle>', defaults={'value': 0})
-@app.route('/<handle>/value=<int:value>', defaults={})
-def handle_request(handle, value):
+@app.route('/<handle>')
+def handle_request(handle):
+    add_value = request.args.get('add', default=0, type=int)
+    subtract_value = request.args.get('subtract', default=0, type=int)
+
     visit_counts[handle] += 1
-    count = visit_counts[handle] + value
+    count = visit_counts[handle] + add_value - subtract_value
+
     return str(count)
 
 if __name__ == "__main__":
