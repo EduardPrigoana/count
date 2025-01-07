@@ -4,9 +4,13 @@ import zipfile
 import io
 from collections import defaultdict
 from PIL import Image
+import logging
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+
+# Set up basic logging configuration
+logging.basicConfig(level=logging.INFO)
 
 visit_counts = defaultdict(int)
 style_cache = {}
@@ -35,16 +39,24 @@ def handle_request(handle, style_url, value, gap):
     if value is not None:
         count += value
 
-    # Use query parameters if provided
-    if 'style' in request.args:
-        style_url = request.args['style']
+    # Use query parameters if provided and override only if needed
+    style_url_query = request.args.get('style')
+    gap_query = request.args.get('gap')
+    value_query = request.args.get('value')
 
-    if 'gap' in request.args:
-        gap = int(request.args['gap'])
-
-    if 'value' in request.args:
-        value = int(request.args['value'])
-        count += value
+    if style_url_query:
+        style_url = style_url_query
+    if gap_query:
+        try:
+            gap = int(gap_query)
+        except ValueError:
+            return jsonify({"error": "Invalid gap value, must be an integer"}), 400
+    if value_query:
+        try:
+            value = int(value_query)
+            count += value
+        except ValueError:
+            return jsonify({"error": "Invalid value, must be an integer"}), 400
 
     if style_url is None:
         return str(count)
@@ -54,19 +66,25 @@ def handle_request(handle, style_url, value, gap):
         try:
             response = requests.get(style_url)
             if response.status_code == 200:
-                zip_data = zipfile.ZipFile(io.BytesIO(response.content))
-                style_cache[style_url] = {f"{i}": zip_data.read(f"{i}.png") for i in range(10)}
+                try:
+                    zip_data = zipfile.ZipFile(io.BytesIO(response.content))
+                    style_cache[style_url] = {f"{i}": zip_data.read(f"{i}.png") for i in range(10)}
+                except zipfile.BadZipFile:
+                    return jsonify({"error": "The style ZIP file is corrupted or invalid"}), 400
             else:
                 return jsonify({"error": "Failed to fetch the style ZIP"}), 400
-        except Exception as e:
-            return jsonify({"error": f"Failed to process the style ZIP: {str(e)}"}), 400
+        except requests.RequestException as e:
+            return jsonify({"error": f"Failed to fetch the style ZIP: {str(e)}"}), 400
 
     try:
         digits = str(count)
         images = [io.BytesIO(style_cache[style_url][digit]) for digit in digits]
         combined_image = combine_images(images, gap)
         return send_file(combined_image, mimetype='image/png')
+    except KeyError:
+        return jsonify({"error": "Missing image data in the style ZIP for the requested digits"}), 400
     except Exception as e:
+        app.logger.error(f"Error generating styled output: {str(e)}")
         return jsonify({"error": f"Failed to generate styled output: {str(e)}"}), 500
 
 def combine_images(images, gap):
@@ -86,4 +104,4 @@ def combine_images(images, gap):
     return output
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
