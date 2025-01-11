@@ -1,4 +1,3 @@
-flask
-pillow
-requests
+Flask
+Pillow
 flask-cors
