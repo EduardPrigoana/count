@@ -1,11 +1,14 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
 import os
+from flask import Flask, jsonify, Response
 import redis
 
 app = Flask(__name__)
-CORS(app)
+
 r = redis.Redis.from_url(os.environ["REDIS_URL"], decode_responses=True)
+
+@app.route('/favicon.ico')
+def favicon():
+    return Response(status=204)
 
 @app.route('/<h>/', methods=['GET'])
 def get_count(h):
