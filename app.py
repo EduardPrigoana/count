@@ -12,6 +12,10 @@ r = redis.Redis.from_url(os.environ["REDIS_URL"], decode_responses=True)
 def favicon():
     return Response(status=204)
 
+@app.route('/', methods=['GET'])
+def hello():
+    return '1'
+
 @app.route('/<h>/', methods=['GET'])
 def get_count(h):
     count = r.incr(h)
