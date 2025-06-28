@@ -1,10 +1,10 @@
-import os
 from flask import Flask, jsonify
+from flask_cors import CORS
+import os
 import redis
 
 app = Flask(__name__)
-
-# Use your REDIS_URL environment variable
+CORS(app)
 r = redis.Redis.from_url(os.environ["REDIS_URL"], decode_responses=True)
 
 @app.route('/<h>/', methods=['GET'])
